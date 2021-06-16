@@ -18,6 +18,10 @@
 	exit(EXIT_FAILURE); \
 }
 
+//#define DEBUG
+
+
+
 
 int udp_socket;
 
@@ -154,9 +158,11 @@ int main(void)
 	signal(SIGTERM, quit);
 
 	while (recv(udp_socket, &ev_pkt, sizeof(ev_pkt), 0) >= 9) {		// every packet has at least 9 bytes
+		#ifdef DEBUG
 		printf("."); fflush(0);
+		#endif
 
-		if (memcmp(ev_pkt.signature, "GfxTablet", 9) != 0) {
+		if (memcmp(ev_pkt.signature, "GfxTable", 8) != 0) {
 			fprintf(stderr, "\nGot unknown packet on port %i, ignoring\n", GFXTABLET_PORT);
 			continue;
 		}
@@ -170,7 +176,9 @@ int main(void)
 		ev_pkt.x = ntohs(ev_pkt.x);
 		ev_pkt.y = ntohs(ev_pkt.y);
 		ev_pkt.pressure = ntohs(ev_pkt.pressure);
+		#ifdef DEBUG
 		printf("x: %hu, y: %hu, pressure: %hu\n", ev_pkt.x, ev_pkt.y, ev_pkt.pressure);
+		#endif
 
 		send_event(device, EV_ABS, ABS_X, ev_pkt.x);
 		send_event(device, EV_ABS, ABS_Y, ev_pkt.y);
@@ -193,7 +201,10 @@ int main(void)
 				// button 2
 				if (ev_pkt.button == 2)
 					send_event(device, EV_KEY, BTN_STYLUS2, ev_pkt.down);
+				
+		#ifdef DEBUG
 				printf("sent button: %hhi, %hhu\n", ev_pkt.button, ev_pkt.down);
+		#endif
 				send_event(device, EV_SYN, SYN_REPORT, 1);
 				break;
 

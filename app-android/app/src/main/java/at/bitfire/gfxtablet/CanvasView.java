@@ -11,6 +11,10 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import android.content.Context;
+import android.graphics.Rect;
+import com.onyx.android.sdk.api.device.epd.EpdController;
+
 import at.bitfire.gfxtablet.NetEvent.Type;
 
 @SuppressLint("ViewConstructor")
@@ -25,9 +29,10 @@ public class CanvasView extends View implements SharedPreferences.OnSharedPrefer
 
     final SharedPreferences settings;
     NetworkClient netClient;
-	boolean acceptStylusOnly;
+	public boolean acceptStylusOnly;
 	int maxX, maxY;
 	InRangeStatus inRangeStatus;
+	public Context canvas_context;
 
 
     // setup
@@ -42,6 +47,7 @@ public class CanvasView extends View implements SharedPreferences.OnSharedPrefer
         settings.registerOnSharedPreferenceChangeListener(this);
         setBackground();
         setInputMethods();
+	canvas_context = context;
 		inRangeStatus = InRangeStatus.OutOfRange;
     }
 
@@ -69,6 +75,21 @@ public class CanvasView extends View implements SharedPreferences.OnSharedPrefer
         switch (key) {
             case SettingsActivity.KEY_PREF_STYLUS_ONLY:
                 setInputMethods();
+        boolean canFingerTouch = EpdController.isCTPPowerOn();
+        if (canFingerTouch) {
+		if(acceptStylusOnly)
+		{
+            int width = canvas_context.getResources().getDisplayMetrics().widthPixels;
+            int height = canvas_context.getResources().getDisplayMetrics().heightPixels;
+            Rect rect = new Rect(0, 0, width, height);
+            Rect[] arrayRect =new Rect[]{rect};
+            EpdController.setAppCTPDisableRegion(canvas_context, arrayRect);
+		}
+		else
+		{
+            EpdController.appResetCTPDisableRegion(canvas_context);
+		}
+        }
                 break;
             case SettingsActivity.KEY_DARK_CANVAS:
                 setBackground();
@@ -118,7 +139,11 @@ public class CanvasView extends View implements SharedPreferences.OnSharedPrefer
 	public boolean onTouchEvent(@NonNull MotionEvent event) {
 		if (isEnabled()) {
 			for (int ptr = 0; ptr < event.getPointerCount(); ptr++)
-				if (!acceptStylusOnly || (event.getToolType(ptr) == MotionEvent.TOOL_TYPE_STYLUS)) {
+			{
+				int type = event.getToolType(ptr) ;
+				if (!acceptStylusOnly || (type == MotionEvent.TOOL_TYPE_STYLUS) || (type == MotionEvent.TOOL_TYPE_ERASER)) {
+					
+					byte eraser = (byte)((type == 4)?2:0);
 					short nx = normalizeX(event.getX(ptr)),
 						  ny = normalizeY(event.getY(ptr)),
 						  npressure = normalizePressure(event.getPressure(ptr));
@@ -132,11 +157,11 @@ public class CanvasView extends View implements SharedPreferences.OnSharedPrefer
 							inRangeStatus = inRangeStatus.FakeInRange;
 							netClient.getQueue().add(new NetEvent(Type.TYPE_BUTTON, nx, ny, (short)0, -1, true));
 						}
-						netClient.getQueue().add(new NetEvent(Type.TYPE_BUTTON, nx, ny, npressure, 0, true));
+						netClient.getQueue().add(new NetEvent(Type.TYPE_BUTTON, nx, ny, npressure, eraser, true));
 						break;
 					case MotionEvent.ACTION_UP:
 					case MotionEvent.ACTION_CANCEL:
-						netClient.getQueue().add(new NetEvent(Type.TYPE_BUTTON, nx, ny, npressure, 0, false));
+						netClient.getQueue().add(new NetEvent(Type.TYPE_BUTTON, nx, ny, npressure, eraser, false));
 						if (inRangeStatus == inRangeStatus.FakeInRange) {
 							inRangeStatus = inRangeStatus.OutOfRange;
 							netClient.getQueue().add(new NetEvent(Type.TYPE_BUTTON, nx, ny, (short)0, -1, false));
@@ -145,6 +170,7 @@ public class CanvasView extends View implements SharedPreferences.OnSharedPrefer
 					}
 						
 				}
+			}
 			return true;
 		}
 		return false;

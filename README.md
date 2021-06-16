@@ -1,6 +1,13 @@
 
-**This project is not maintained anymore. If you're interested in taking it over,
-please tell me at info@bitfire.at.**
+This is a fork of gfxtablet, but is badly patched for Boox tablets.
+
+Added features:
+Palm rejection
+Eraser
+
+TODO:
+Performance improvments
+Detect hovering pen ( if possible )
 
 To be informed about updates:
 

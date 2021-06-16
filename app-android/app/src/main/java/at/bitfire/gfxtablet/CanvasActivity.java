@@ -22,6 +22,10 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import android.content.Context;
+import android.graphics.Rect;
+import com.onyx.android.sdk.api.device.epd.EpdController;
+
 public class CanvasActivity extends AppCompatActivity implements View.OnSystemUiVisibilityChangeListener, SharedPreferences.OnSharedPreferenceChangeListener {
     private static final int RESULT_LOAD_IMAGE = 1;
     private static final String TAG = "GfxTablet.Canvas";
@@ -32,6 +36,8 @@ public class CanvasActivity extends AppCompatActivity implements View.OnSystemUi
 
     SharedPreferences preferences;
     boolean fullScreen = false;
+    
+    CanvasView cv;
 
 
     @Override
@@ -49,8 +55,8 @@ public class CanvasActivity extends AppCompatActivity implements View.OnSystemUi
         new ConfigureNetworkingTask().execute();
 
         // notify CanvasView of the network client
-        CanvasView canvas = (CanvasView)findViewById(R.id.canvas);
-        canvas.setNetworkClient(netClient);
+        cv = (CanvasView)findViewById(R.id.canvas);
+        cv.setNetworkClient(netClient);
     }
 
     @Override
@@ -63,12 +69,27 @@ public class CanvasActivity extends AppCompatActivity implements View.OnSystemUi
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         showTemplateImage();
+
+	if(!cv.acceptStylusOnly) return;
+        boolean canFingerTouch = EpdController.isCTPPowerOn();
+        if (canFingerTouch) {
+            int width = cv.canvas_context.getResources().getDisplayMetrics().widthPixels;
+            int height = cv.canvas_context.getResources().getDisplayMetrics().heightPixels;
+            Rect rect = new Rect(0, 0, width, height);
+            Rect[] arrayRect =new Rect[]{rect};
+            EpdController.setAppCTPDisableRegion(cv.canvas_context, arrayRect);
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         netClient.getQueue().add(new NetEvent(NetEvent.Type.TYPE_DISCONNECT));
+	if(!cv.acceptStylusOnly) return;
+        boolean canFingerTouch = !EpdController.isCTPPowerOn();
+        if (!canFingerTouch) {
+            EpdController.appResetCTPDisableRegion(cv.canvas_context);
+        }
     }
 
     @Override

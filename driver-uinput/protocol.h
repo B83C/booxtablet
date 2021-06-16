@@ -1,6 +1,6 @@
 #define GFXTABLET_PORT 40118
 
-#define PROTOCOL_VERSION 2
+#define PROTOCOL_VERSION 3
 
 
 #pragma pack(push)
@@ -11,7 +11,7 @@
 
 struct event_packet
 {
-	char signature[9];
+	char signature[8];
 	uint16_t version;
 	uint8_t type;	/* EVENT_TYPE_... */
 	struct {	/* required */

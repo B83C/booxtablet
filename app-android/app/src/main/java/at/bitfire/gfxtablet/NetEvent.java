@@ -14,8 +14,8 @@ public class NetEvent {
 		// not specified in protocol, only needed to shut down network thread 
 		TYPE_DISCONNECT
 	}
-	static final String signature = "GfxTablet";
-	static final short protocol_version = 2;
+	static final String signature = "GfxTable";
+	static final short protocol_version = 3;
 	
 	final Type type;
 	short x, y, pressure;
@@ -63,7 +63,6 @@ public class NetEvent {
 			dos.writeShort(x);
 			dos.writeShort(y);
 			dos.writeShort(pressure);
-			
 			if (type == Type.TYPE_BUTTON) {
 				dos.writeByte(button);
 				dos.writeByte(button_down);
